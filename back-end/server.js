@@ -1,6 +1,6 @@
 require("dotenv").config();
 const express = require("express");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const cors = require("cors");
 
 const app = express();
@@ -9,36 +9,12 @@ const app = express();
 app.use(cors({
     origin: [
         'https://codigo-collab.github.io',  // Seu GitHub Pages
-        'https://teste-2-7aqL.onrender.com', // Seu Render
+        'https://teste-2-89b4.onrender.com', // ✅ NOVO SERVIDOR
         'http://localhost:3000',
         'http://127.0.0.1:5500'
     ],
     credentials: true
 }));
-
-// Middleware para headers CORS
-app.use((req, res, next) => {
-    const allowedOrigins = [
-        'https://codigo-collab.github.io',
-        'https://teste-2-7aqL.onrender.com',
-        'http://localhost:3000',
-        'http://127.0.0.1:5500'
-    ];
-    
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-    }
-    
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    
-    // Responde preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    next();
-});
 
 app.use(express.json());
 
@@ -46,8 +22,8 @@ app.use(express.json());
 app.get("/", (req, res) => {
     res.json({ 
         status: "OK", 
-        message: "API de Email funcionando!",
-        server: "Render - teste-2-7aqL",
+        message: "API de Email funcionando com Resend!",
+        server: "Render - teste-2-89b4", // ✅ NOVO SERVIDOR
         routes: [
             "GET /health",
             "POST /send", 
@@ -61,16 +37,16 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
     res.json({ 
         status: "OK", 
-        message: "Servidor rodando perfeitamente!",
-        server: "Render - teste-2-7aqL", 
+        message: "Servidor rodando perfeitamente com Resend!",
+        server: "Render - teste-2-89b4", // ✅ NOVO SERVIDOR
         timestamp: new Date().toISOString()
     });
 });
 
-// Rota principal de envio de email
+// Rota principal de envio de email COM RESEND
 app.post("/send", async (req, res) => {
     console.log('📧 Recebida requisição para /send');
-    console.log('📍 Origem da requisição:', req.headers.origin);
+    console.log('📍 Origem:', req.headers.origin);
     
     const { name, email, message } = req.body;
 
@@ -79,108 +55,39 @@ app.post("/send", async (req, res) => {
     console.log('   Email:', email);
     console.log('   Mensagem:', message);
 
-    // Validação básica
+    // Validação
     if (!name || !email || !message) {
-        console.log('❌ Dados incompletos');
         return res.status(400).json({ 
             success: false, 
-            error: "Todos os campos são obrigatórios: nome, email, mensagem" 
+            error: "Todos os campos são obrigatórios" 
         });
     }
 
     try {
-        console.log('🔧 Configurando transporter do Gmail...');
+        console.log('🔧 Configurando Resend...');
         
-        // CONFIGURAÇÃO PARA GMAIL
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            },
-            debug: true, // Log detalhado
-            logger: true
-        });
+        const resend = new Resend(process.env.RESEND_API_KEY);
 
-        console.log('✅ Transporter configurado');
-        console.log('   Email USER:', process.env.EMAIL_USER || '❌ Não configurado');
-        console.log('   Email PASS:', process.env.EMAIL_PASS ? '✅ Configurado' : '❌ Não configurado');
-
-        const mailOptions = {
-            from: `Portfolio <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER, // Enviar para o próprio email
-            replyTo: email, // Para responder direto para a pessoa
+        console.log('📤 Enviando email via Resend...');
+        
+        const { data, error } = await resend.emails.send({
+            from: 'Portfolio <onboarding@resend.dev>',
+            to: ['ian.fotos123@gmail.com'], // Email que recebe as mensagens
+            reply_to: email,
             subject: `📧 Nova mensagem de ${name} - Portfolio`,
-            text: `
-NOVA MENSAGEM DO PORTFOLIO
-
-Nome: ${name}
-Email: ${email}
-Mensagem: 
-${message}
-
----
-Enviado em: ${new Date().toLocaleString('pt-BR')}
-            `,
             html: `
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <style>
-        body { 
-            font-family: 'Arial', sans-serif; 
-            color: #333; 
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #ffffff;
-        }
-        .header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            padding: 30px 20px; 
-            text-align: center; 
-        }
-        .content { 
-            padding: 30px 20px; 
-            border: 1px solid #e0e0e0;
-            border-top: none;
-        }
-        .field { 
-            margin-bottom: 20px; 
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        .label { 
-            font-weight: bold; 
-            color: #667eea; 
-            display: block;
-            margin-bottom: 5px;
-        }
-        .message-content {
-            background: white;
-            padding: 15px;
-            border-left: 4px solid #667eea;
-            margin-top: 10px;
-        }
-        .footer { 
-            background: #f5f5f5; 
-            padding: 20px; 
-            text-align: center; 
-            font-size: 14px; 
-            color: #666;
-            border-top: 1px solid #e0e0e0;
-        }
-        h1 {
-            margin: 0;
-            font-size: 24px;
-        }
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }
+        .content { padding: 30px 20px; border: 1px solid #e0e0e0; border-top: none; }
+        .field { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .label { font-weight: bold; color: #667eea; display: block; margin-bottom: 5px; }
+        .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 14px; color: #666; }
     </style>
 </head>
 <body>
@@ -200,7 +107,7 @@ Enviado em: ${new Date().toLocaleString('pt-BR')}
             </div>
             <div class="field">
                 <span class="label">💬 Mensagem:</span>
-                <div class="message-content">
+                <div style="background: white; padding: 15px; border-left: 4px solid #667eea; margin-top: 10px;">
                     ${message.replace(/\n/g, '<br>')}
                 </div>
             </div>
@@ -208,85 +115,71 @@ Enviado em: ${new Date().toLocaleString('pt-BR')}
         <div class="footer">
             <p>🕒 Enviado em: ${new Date().toLocaleString('pt-BR')}</p>
             <p>📧 Sistema de Contato - Portfolio</p>
-            <p><small>Responda diretamente para: ${email}</small></p>
+            <p><small>Responda para: ${email}</small></p>
         </div>
     </div>
 </body>
 </html>
-            `
-        };
+            `,
+        });
 
-        console.log('📤 Enviando email...');
+        if (error) {
+            console.error('❌ Erro do Resend:', error);
+            throw new Error(error.message);
+        }
+
+        console.log('✅ Email enviado com Resend! ID:', data.id);
         
-        // Verificar configuração primeiro
-        await transporter.verify();
-        console.log('✅ Conexão com Gmail verificada');
-
-        // Enviar email
-        const info = await transporter.sendMail(mailOptions);
-        
-        console.log('✅ Email enviado com sucesso!');
-        console.log('   Message ID:', info.messageId);
-        console.log('   Response:', info.response);
-
         res.json({ 
             success: true, 
             message: "Email enviado com sucesso!",
-            messageId: info.messageId
+            id: data.id
         });
 
     } catch (err) {
         console.error('❌ Erro ao enviar email:', err);
-        
-        let errorMessage = "Erro ao enviar email";
-        if (err.code === 'EAUTH') {
-            errorMessage = "Erro de autenticação - verifique EMAIL_USER e EMAIL_PASS";
-        } else if (err.code === 'ECONNECTION') {
-            errorMessage = "Erro de conexão com o servidor de email";
-        }
-        
         res.status(500).json({ 
             success: false, 
-            error: errorMessage,
-            details: err.message
+            error: "Erro ao enviar email. Tente novamente."
         });
     }
 });
 
-// Rota para testar configuração do email
+// Rota para testar Resend
 app.get("/test-email", async (req, res) => {
     try {
-        console.log('🧪 Testando configuração de email...');
+        console.log('🧪 Testando Resend...');
         
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
+        const resend = new Resend(process.env.RESEND_API_KEY);
+
+        const { data, error } = await resend.emails.send({
+            from: 'Portfolio <onboarding@resend.dev>',
+            to: ['ian.fotos123@gmail.com'],
+            subject: '✅ Teste do Portfolio - RESEND',
+            html: '<h2>Teste do Portfolio</h2><p>Se você recebeu este email, o Resend está funcionando!</p>',
         });
 
-        // Testar a conexão
-        await transporter.verify();
-        
-        console.log('✅ Teste de email: CONEXÃO OK');
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        console.log('✅ Teste de email enviado! ID:', data.id);
         
         res.json({ 
             success: true, 
-            message: "Conexão com Gmail configurada corretamente",
-            email: process.env.EMAIL_USER,
-            server: "Render - teste-2-7aqL"
+            message: "Email de teste enviado com sucesso!",
+            id: data.id
         });
     } catch (err) {
-        console.error('❌ Teste de email: FALHA', err);
+        console.error('❌ Erro no teste:', err);
         res.status(500).json({ 
             success: false, 
-            error: "Falha na configuração do Gmail: " + err.message
+            error: "Falha no teste: " + err.message
         });
     }
 });
 
-// Middleware para rotas não encontradas
+// Rotas não encontradas
 app.use((req, res) => {
     res.status(404).json({ 
         success: false, 
@@ -296,8 +189,7 @@ app.use((req, res) => {
             "GET /health", 
             "POST /send", 
             "GET /test-email"
-        ],
-        server: "Render - teste-2-7aqL"
+        ]
     });
 });
 
@@ -305,16 +197,10 @@ const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log("=======================================");
-    console.log("🚀 SERVIDOR INICIADO COM SUCESSO!");
+    console.log("🚀 SERVIDOR INICIADO COM RESEND!");
     console.log("=======================================");
     console.log("📍 Porta:", PORT);
-    console.log("🌐 Server: Render - teste-2-7aqL");
-    console.log("📧 Email USER:", process.env.EMAIL_USER || "❌ NÃO CONFIGURADO");
-    console.log("🔑 Email PASS:", process.env.EMAIL_PASS ? "✅ CONFIGURADO" : "❌ NÃO CONFIGURADO");
-    console.log("=======================================");
-    console.log("📍 URLs para teste:");
-    console.log("   ✅ https://teste-2-7aqL.onrender.com");
-    console.log("   ✅ https://teste-2-7aqL.onrender.com/health");
-    console.log("   ✅ https://teste-2-7aqL.onrender.com/test-email");
+    console.log("🌐 Server: Render - teste-2-89b4"); // ✅ NOVO SERVIDOR
+    console.log("📧 Resend Configurado:", process.env.RESEND_API_KEY ? "✅ SIM" : "❌ NÃO");
     console.log("=======================================");
 });
