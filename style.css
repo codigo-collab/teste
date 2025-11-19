@@ -671,7 +671,7 @@ h1, h2, h3, h4 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="%23ffffff" opacity="0.1"><polygon points="1000,100 1000,0 0,100"></polygon></svg>');
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox=" 0 1000 100" fill="%23ffffff" opacity="0.1"><polygon points="1000,100 1000,0 0,100"></polygon></svg>');
     background-size: cover;
 }
 
@@ -1395,7 +1395,7 @@ h1, h2, h3, h4 {
 .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #f3f3f3;
+    border: 4px solid #770f0f;
     border-top: 4px solid var(--secondary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -1471,4 +1471,72 @@ h1, h2, h3, h4 {
 .tooltip:hover .tooltiptext {
     visibility: visible;
     opacity: 1;
+}
+
+/* Modo escuro (opcional) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary: #ecf0f1;
+        --secondary: #3498db;
+        --light: #2c3e50;
+        --dark: #ecf0f1;
+        --text: #ecf0f1;
+        --text-light: #bdc3c7;
+        --white: #34495e;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    }
+}
+/* CORREÇÃO PARA SCROLL SUAVE */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Garante que as seções tenham espaço para o scroll */
+section {
+    scroll-margin-top: 80px; /* Altura da navbar */
+}
+
+/* Remove qualquer margem/padding que possa estar atrapalhando */
+#experience {
+    position: relative;
+    z-index: 2;
+}
+
+/* Garante que o particles não interfira */
+#particles-js {
+    position: fixed !important;
+    z-index: -9999 !important;
+    pointer-events: none !important;
+}
+/* Impressão */
+@media print {
+    .navbar,
+    .hero-buttons,
+    .scroll-indicator,
+    .contact-form,
+    .footer {
+        display: none !important;
+    }
+    
+    body {
+        background: rgb(138, 0, 0) !important;
+        color: black !important;
+    }
+    
+    .container {
+        width: 100% !important;
+        max-width: none !important;
+    }
+    
+    section {
+        padding: 50px 0 !important;
+        page-break-inside: avoid;
+    }
+    
+    .hero {
+        min-height: auto !important;
+    }
 }
