@@ -1,5 +1,44 @@
+async function enviarEmail(dados) {
+  try {
+    // URL DINÂMICA - funciona em desenvolvimento e produção
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const BASE_URL = isLocalhost 
+      ? 'http://localhost:3000'  // Desenvolvimento
+      : 'https://seu-backend-email.herokuapp.com'; // Produção (você vai atualizar depois)
+
+    console.log('Enviando para:', `${BASE_URL}/send`); // Para debug
+    
+    const response = await fetch(`${BASE_URL}/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: dados.nome,
+        email: dados.email,
+        message: dados.mensagem
+      })
+    });
+
+    const result = await response.json();
+    console.log('Resposta do servidor:', result); // Para debug
+    
+    if (response.ok) {
+      alert('✅ Email enviado com sucesso!');
+      // Limpar formulário
+      document.getElementById('contactForm').reset();
+    } else {
+      alert('❌ Erro ao enviar email: ' + (result.error || 'Erro desconhecido'));
+    }
+  } catch (error) {
+    console.error('Erro completo:', error);
+    alert('❌ Erro de conexão. Verifique se o servidor está rodando.');
+  }
+}
+
 // Inicialização do Particles.js
 document.addEventListener('DOMContentLoaded', function() {
+
     // Configuração do Particles.js
     if (typeof particlesJS !== 'undefined') {
         particlesJS('particles-js', {
@@ -17,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 shape: {
                     type: 'circle',
                     stroke: {
-                        width: 0,
+                        width: 1,
                         color: '#000000'
                     }
                 },
@@ -32,11 +71,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 size: {
-                    value: 3,
+                    value: 4,
                     random: true,
                     anim: {
                         enable: true,
-                        speed: 2,
+                        speed: 10,
                         size_min: 0.1,
                         sync: false
                     }
@@ -91,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function() {
             retina_detect: true
         });
     }
-
     // Menu hamburger para mobile
     const hamburger = document.querySelector('.hamburger');
     const navMenu = document.querySelector('.nav-menu');
@@ -252,21 +290,39 @@ function initProgressCircles() {
         observer.observe(aboutSection);
     }
 }
-
-// Scroll suave
+// SCROLL SUAVE CORRIGIDO - substitua a função atual por esta
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
+            
+            const targetId = this.getAttribute('href');
+            console.log('Clicado no link:', targetId); // Para debug
+            
+            const target = document.querySelector(targetId);
+            
             if (target) {
-                const headerHeight = document.querySelector('.navbar').offsetHeight;
-                const targetPosition = target.offsetTop - headerHeight;
-
+                console.log('Alvo encontrado:', target); // Para debug
+                
+                // Calcula a posição exata
+                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
+                const navbar = document.querySelector('.navbar');
+                const navbarHeight = navbar ? navbar.offsetHeight : 0;
+                
+                // Posição final considerando a navbar
+                const offsetPosition = targetPosition - navbarHeight - 20;
+                
+                console.log('Posição calculada:', offsetPosition); // Para debug
+                
                 window.scrollTo({
-                    top: targetPosition,
+                    top: offsetPosition,
                     behavior: 'smooth'
                 });
+                
+                // Atualiza a URL sem recarregar a página
+                history.pushState(null, null, targetId);
+            } else {
+                console.log('Alvo NÃO encontrado:', targetId); // Para debug
             }
         });
     });
@@ -295,23 +351,42 @@ function initScrollAnimations() {
 function initContactForm() {
     const contactForm = document.getElementById('contactForm');
     if (contactForm) {
-        contactForm.addEventListener('submit', (e) => {
+        contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Simulação de envio
             const submitBtn = contactForm.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
-            
-            submitBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+            // Mostrar loading
+            submitBtn.innerHTML = '<div class="loading-spinner"></div>Enviando...';
             submitBtn.disabled = true;
-            
-            setTimeout(() => {
-                // Aqui você pode adicionar o código real para enviar o formulário
-                showNotification('Mensagem enviada com sucesso! Entrarei em contato em breve.', 'success');
-                contactForm.reset();
+
+            try {
+                // Coletar dados do formulário
+                const formData = {
+                    nome: document.getElementById('name').value,
+                    email: document.getElementById('email').value,
+                    mensagem: `
+Assunto: ${document.getElementById('subject').value}
+Nome: ${document.getElementById('name').value}
+Email: ${document.getElementById('email').value}
+Mensagem: ${document.getElementById('message').value}
+                    `.trim()
+                };
+
+                console.log('Enviando dados:', formData); // Para debug
+
+                // Chamar a função de enviar email
+                await enviarEmail(formData);
+                
+            } catch (error) {
+                console.error('Erro no formulário:', error);
+                alert('Erro ao enviar formulário: ' + error.message);
+            } finally {
+                // Restaurar botão
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-            }, 2000);
+            }
         });
     }
 }
@@ -489,18 +564,5 @@ function initTiltEffect() {
     });
 }
 
-///// Inicializar efeito tilt após o carregamento
+// Inicializar efeito tilt após o carregamento
 setTimeout(initTiltEffect, 1000);
-//////////////////////////////////////////////////////////////
-//projeto-curriculo/
-//│
-//├── index.html
-//├── style.css
-//├── script.js
-//└── img/
-//    ├── profile.jpg
-//    ├── projects/
-//    │   ├── project1.jpg
-//    │   ├── project2.jpg
-//    │   └── project3.jpg
-//    └── background.jpg
