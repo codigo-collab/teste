@@ -1,12 +1,9 @@
 async function enviarEmail(dados) {
   try {
-    // URL DINÂMICA - funciona em desenvolvimento e produção
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const BASE_URL = isLocalhost 
-      ? 'http://localhost:3000'  // Desenvolvimento
-      : 'https://seu-backend-email.herokuapp.com'; // Produção (você vai atualizar depois)
+    // URL do Render - SUBSTITUA pelo SEU URL do Render
+    const BASE_URL = 'https://teste-2-7aq1.onrender.com';
 
-    console.log('Enviando para:', `${BASE_URL}/send`); // Para debug
+    console.log('Enviando para:', `${BASE_URL}/send`);
     
     const response = await fetch(`${BASE_URL}/send`, {
       method: 'POST',
@@ -21,21 +18,19 @@ async function enviarEmail(dados) {
     });
 
     const result = await response.json();
-    console.log('Resposta do servidor:', result); // Para debug
+    console.log('Resposta do servidor:', result);
     
     if (response.ok) {
       alert('✅ Email enviado com sucesso!');
-      // Limpar formulário
       document.getElementById('contactForm').reset();
     } else {
       alert('❌ Erro ao enviar email: ' + (result.error || 'Erro desconhecido'));
     }
   } catch (error) {
     console.error('Erro completo:', error);
-    alert('❌ Erro de conexão. Verifique se o servidor está rodando.');
+    alert('❌ Erro de conexão com o servidor.');
   }
 }
-
 // Inicialização do Particles.js
 document.addEventListener('DOMContentLoaded', function() {
 
