@@ -1,9 +1,13 @@
 async function enviarEmail(dados) {
   try {
-    // URL do Render - SUBSTITUA pelo SEU URL do Render
-    const BASE_URL = 'https://teste-2-7aq1.onrender.com';
+    // ✅ URL CORRETA do seu Render
+    const BASE_URL = 'https://teste-2-7aqL.onrender.com';
 
     console.log('Enviando para:', `${BASE_URL}/send`);
+    
+    // Adicionar timeout de 10 segundos
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     const response = await fetch(`${BASE_URL}/send`, {
       method: 'POST',
@@ -14,8 +18,11 @@ async function enviarEmail(dados) {
         name: dados.nome,
         email: dados.email,
         message: dados.mensagem
-      })
+      }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     const result = await response.json();
     console.log('Resposta do servidor:', result);
@@ -28,7 +35,11 @@ async function enviarEmail(dados) {
     }
   } catch (error) {
     console.error('Erro completo:', error);
-    alert('❌ Erro de conexão com o servidor.');
+    if (error.name === 'AbortError') {
+      alert('❌ Timeout: Servidor não respondeu em 10 segundos');
+    } else {
+      alert('❌ Erro de conexão com o servidor.');
+    }
   }
 }
 // Inicialização do Particles.js
