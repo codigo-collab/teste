@@ -5,15 +5,31 @@ const cors = require("cors");
 
 const app = express();
 
-// CONFIGURAÇÃO CORS COMPLETA PARA DESENVOLVIMENTO
+// CONFIGURAÇÃO CORS PARA PRODUÇÃO
 app.use(cors({
-    origin: true, // Permite todas as origens em desenvolvimento
+    origin: [
+        'https://codigo-collab.github.io',  // Seu GitHub Pages
+        'https://teste-2-7aqL.onrender.com', // Seu Render
+        'http://localhost:3000',
+        'http://127.0.0.1:5500'
+    ],
     credentials: true
 }));
 
 // Middleware para headers CORS
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const allowedOrigins = [
+        'https://codigo-collab.github.io',
+        'https://teste-2-7aqL.onrender.com',
+        'http://localhost:3000',
+        'http://127.0.0.1:5500'
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     
@@ -26,11 +42,27 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Rota de health check para testar se o servidor está respondendo
+// ✅ ROTA RAIZ - IMPORTANTE para Render
+app.get("/", (req, res) => {
+    res.json({ 
+        status: "OK", 
+        message: "API de Email funcionando!",
+        server: "Render - teste-2-7aqL",
+        routes: [
+            "GET /health",
+            "POST /send", 
+            "GET /test-email"
+        ],
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Rota de health check
 app.get("/health", (req, res) => {
     res.json({ 
         status: "OK", 
-        message: "Servidor rodando",
+        message: "Servidor rodando perfeitamente!",
+        server: "Render - teste-2-7aqL", 
         timestamp: new Date().toISOString()
     });
 });
@@ -39,7 +71,6 @@ app.get("/health", (req, res) => {
 app.post("/send", async (req, res) => {
     console.log('📧 Recebida requisição para /send');
     console.log('📍 Origem da requisição:', req.headers.origin);
-    console.log('📦 Headers:', req.headers);
     
     const { name, email, message } = req.body;
 
@@ -53,7 +84,7 @@ app.post("/send", async (req, res) => {
         console.log('❌ Dados incompletos');
         return res.status(400).json({ 
             success: false, 
-            error: "Todos os campos são obrigatórios" 
+            error: "Todos os campos são obrigatórios: nome, email, mensagem" 
         });
     }
 
@@ -66,57 +97,119 @@ app.post("/send", async (req, res) => {
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            }
+            },
+            debug: true, // Log detalhado
+            logger: true
         });
 
         console.log('✅ Transporter configurado');
-        console.log('   Email USER:', process.env.EMAIL_USER ? '✅ Configurado' : '❌ Não configurado');
+        console.log('   Email USER:', process.env.EMAIL_USER || '❌ Não configurado');
         console.log('   Email PASS:', process.env.EMAIL_PASS ? '✅ Configurado' : '❌ Não configurado');
-        console.log('   Email TO:', process.env.EMAIL_TO ? '✅ Configurado' : '❌ Não configurado');
 
         const mailOptions = {
-            from: process.env.EMAIL_USER, // Usar o email configurado, não o do usuário
-            to: process.env.EMAIL_TO,
-            subject: `Contato de ${name} - Portfolio`,
+            from: `Portfolio <${process.env.EMAIL_USER}>`,
+            to: process.env.EMAIL_USER, // Enviar para o próprio email
+            replyTo: email, // Para responder direto para a pessoa
+            subject: `📧 Nova mensagem de ${name} - Portfolio`,
             text: `
+NOVA MENSAGEM DO PORTFOLIO
+
 Nome: ${name}
 Email: ${email}
-Mensagem: ${message}
+Mensagem: 
+${message}
 
+---
 Enviado em: ${new Date().toLocaleString('pt-BR')}
             `,
             html: `
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <style>
-        body { font-family: Arial, sans-serif; color: #333; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; }
-        .field { margin-bottom: 10px; }
-        .label { font-weight: bold; color: #667eea; }
-        .footer { background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; }
+        body { 
+            font-family: 'Arial', sans-serif; 
+            color: #333; 
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+        }
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center; 
+        }
+        .content { 
+            padding: 30px 20px; 
+            border: 1px solid #e0e0e0;
+            border-top: none;
+        }
+        .field { 
+            margin-bottom: 20px; 
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .label { 
+            font-weight: bold; 
+            color: #667eea; 
+            display: block;
+            margin-bottom: 5px;
+        }
+        .message-content {
+            background: white;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin-top: 10px;
+        }
+        .footer { 
+            background: #f5f5f5; 
+            padding: 20px; 
+            text-align: center; 
+            font-size: 14px; 
+            color: #666;
+            border-top: 1px solid #e0e0e0;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>📧 Nova Mensagem para voce Maria</h1>
-    </div>
-    <div class="content">
-        <div class="field">
-            <span class="label">Nome:</span> ${name}
+    <div class="container">
+        <div class="header">
+            <h1>📧 Nova Mensagem do Portfolio</h1>
+            <p>Você recebeu uma nova mensagem de contato</p>
         </div>
-        <div class="field">
-            <span class="label">Email:</span> ${email}
+        <div class="content">
+            <div class="field">
+                <span class="label">👤 Nome:</span>
+                <span>${name}</span>
+            </div>
+            <div class="field">
+                <span class="label">📧 Email:</span>
+                <span>${email}</span>
+            </div>
+            <div class="field">
+                <span class="label">💬 Mensagem:</span>
+                <div class="message-content">
+                    ${message.replace(/\n/g, '<br>')}
+                </div>
+            </div>
         </div>
-        <div class="field">
-            <span class="label">Mensagem:</span><br>
-            ${message.replace(/\n/g, '<br>')}
+        <div class="footer">
+            <p>🕒 Enviado em: ${new Date().toLocaleString('pt-BR')}</p>
+            <p>📧 Sistema de Contato - Portfolio</p>
+            <p><small>Responda diretamente para: ${email}</small></p>
         </div>
-    </div>
-    <div class="footer">
-        <p>Enviado em: ${new Date().toLocaleString('pt-BR')}</p>
-        <p>📧 Sistema de Contato - Portfolio</p>
     </div>
 </body>
 </html>
@@ -125,6 +218,10 @@ Enviado em: ${new Date().toLocaleString('pt-BR')}
 
         console.log('📤 Enviando email...');
         
+        // Verificar configuração primeiro
+        await transporter.verify();
+        console.log('✅ Conexão com Gmail verificada');
+
         // Enviar email
         const info = await transporter.sendMail(mailOptions);
         
@@ -141,18 +238,17 @@ Enviado em: ${new Date().toLocaleString('pt-BR')}
     } catch (err) {
         console.error('❌ Erro ao enviar email:', err);
         
-        // Log mais detalhado do erro
-        if (err.code) {
-            console.error('   Código do erro:', err.code);
-        }
-        if (err.command) {
-            console.error('   Comando:', err.command);
+        let errorMessage = "Erro ao enviar email";
+        if (err.code === 'EAUTH') {
+            errorMessage = "Erro de autenticação - verifique EMAIL_USER e EMAIL_PASS";
+        } else if (err.code === 'ECONNECTION') {
+            errorMessage = "Erro de conexão com o servidor de email";
         }
         
         res.status(500).json({ 
             success: false, 
-            error: err.message,
-            code: err.code
+            error: errorMessage,
+            details: err.message
         });
     }
 });
@@ -160,6 +256,8 @@ Enviado em: ${new Date().toLocaleString('pt-BR')}
 // Rota para testar configuração do email
 app.get("/test-email", async (req, res) => {
     try {
+        console.log('🧪 Testando configuração de email...');
+        
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -171,12 +269,16 @@ app.get("/test-email", async (req, res) => {
         // Testar a conexão
         await transporter.verify();
         
+        console.log('✅ Teste de email: CONEXÃO OK');
+        
         res.json({ 
             success: true, 
             message: "Conexão com Gmail configurada corretamente",
-            email: process.env.EMAIL_USER
+            email: process.env.EMAIL_USER,
+            server: "Render - teste-2-7aqL"
         });
     } catch (err) {
+        console.error('❌ Teste de email: FALHA', err);
         res.status(500).json({ 
             success: false, 
             error: "Falha na configuração do Gmail: " + err.message
@@ -189,19 +291,30 @@ app.use((req, res) => {
     res.status(404).json({ 
         success: false, 
         error: "Rota não encontrada",
-        availableRoutes: ["GET /health", "POST /send", "GET /test-email"]
+        availableRoutes: [
+            "GET /", 
+            "GET /health", 
+            "POST /send", 
+            "GET /test-email"
+        ],
+        server: "Render - teste-2-7aqL"
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-app.listen(PORT, () => {
-    console.log("🚀 Servidor rodando na porta " + PORT);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log("=======================================");
+    console.log("🚀 SERVIDOR INICIADO COM SUCESSO!");
+    console.log("=======================================");
+    console.log("📍 Porta:", PORT);
+    console.log("🌐 Server: Render - teste-2-7aqL");
+    console.log("📧 Email USER:", process.env.EMAIL_USER || "❌ NÃO CONFIGURADO");
+    console.log("🔑 Email PASS:", process.env.EMAIL_PASS ? "✅ CONFIGURADO" : "❌ NÃO CONFIGURADO");
+    console.log("=======================================");
     console.log("📍 URLs para teste:");
-    console.log("   http://localhost:" + PORT + "/health");
-    console.log("   http://localhost:" + PORT + "/test-email");
-    console.log("📧 Configuração de email:");
-    console.log("   EMAIL_USER:", process.env.EMAIL_USER || "❌ Não configurado");
-    console.log("   EMAIL_TO:", process.env.EMAIL_TO || "❌ Não configurado");
-    console.log("   EMAIL_PASS:", process.env.EMAIL_PASS ? "✅ Configurado" : "❌ Não configurado");
+    console.log("   ✅ https://teste-2-7aqL.onrender.com");
+    console.log("   ✅ https://teste-2-7aqL.onrender.com/health");
+    console.log("   ✅ https://teste-2-7aqL.onrender.com/test-email");
+    console.log("=======================================");
 });
