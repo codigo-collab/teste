@@ -1,7 +1,7 @@
 async function enviarEmail(dados) {
   try {
     // ✅ URL CORRETA do seu Render
-    const BASE_URL = 'https://teste-2-7aq1.onrender.com/health';
+    const BASE_URL = 'https://teste-2-59b4.onrender.com';
 
     console.log('Enviando para:', `${BASE_URL}/send`);
     
@@ -572,4 +572,5 @@ function initTiltEffect() {
 
 // Inicializar efeito tilt após o carregamento
 setTimeout(initTiltEffect, 1000);
+
 
